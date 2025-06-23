@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="Resta Travel - Travel Palembang Lampung dan Palembang Jakarta terbaik dengan layanan door to door dan armada nyaman.">
+  <meta name="keywords" content="travel palembang lampung, travel lampung palembang, travel palembang jakarta, travel lampung jakarta">
+  <meta name="author" content="Resta Travel">
+  <title>Resta Travel | Travel Palembang Lampung & Jakarta</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f4f4f4;
+    }
+    .form-container {
+      max-width: 700px;
+      margin: 20px auto;
+      background-color: #004b8d;
+      color: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    .form-header {
+      background-color: #00366c;
+      padding: 20px;
+      text-align: center;
+    }
+    .form-header h1 {
+      margin: 0;
+      font-size: 24px;
+      color: white;
+    }
+    form {
+      background: white;
+      padding: 20px;
+      color: black;
+    }
+    label {
+      font-weight: bold;
+      margin-top: 15px;
+      display: block;
+    }
+    input, select, button, a {
+      padding: 10px;
+      width: 100%;
+      margin-top: 5px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    #map {
+      height: 300px;
+      margin-top: 10px;
+      border-radius: 8px;
+    }
+    a#waLink {
+      display: block;
+      text-align: center;
+      background-color: #25D366;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: bold;
+      margin-top: 20px;
+    }
+    .seat-map {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      max-width: 300px;
+      margin: 20px auto;
+    }
+    .seat-map button {
+      padding: 20px;
+      border-radius: 12px;
+      background: #ccc;
+      border: none;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .seat-map button.selected {
+      background: #25D366;
+      color: white;
+    }
+    .seat-map button.driver {
+      background: black;
+      color: white;
+      cursor: not-allowed;
+    }
+    .seat-map button.empty {
+      visibility: hidden;
+    }
+    @media (max-width: 600px) {
+      .seat-map button {
+        padding: 16px;
+        font-size: 14px;
+      }
+    }
+  </style>
+  <meta name="google-site-verification" content="-BEScp4_VrtiUnTqyNyjCEsa16wlqmsXbMIqb_R3c6U" />
+</head>
+<body>
+
+<div class="form-container">
+  <div class="form-header">
+    <h1>Resta Travel</h1>
+    <h1>Form Pemesanan Tiket</h1>
+  </div>
+  <form onsubmit="return false;">
+    <label for="nama">Nama Pemesan</label>
+    <input type="text" id="nama" placeholder="Masukkan Nama Anda" required>
+
+    <label for="pickup">Titik Penjemputan ( Ketik / Geser titik sesuai lokasi penjemputan)</label>
+    <input type="text" id="pickup" placeholder="Lokasi otomatis" required>
+    <div id="map"></div>
+
+    <label for="tgl">Tanggal Keberangkatan</label>
+    <input type="date" id="tgl" required>
+
+    <label for="waktu">Jam Keberangkatan</label>
+    <select id="waktu">
+      <option value="11:00">PKL 11.00 WIB</option>
+      <option value="20:00">PKL 20.00 WIB</option>
+    </select>
+
+    <label for="rute">Kota Tujuan</label>
+    <select id="rute" onchange="updateHarga()">
+      <option value="lampung">Lampung</option>
+      <option value="palembang">Palembang</option>
+      <option value="jakarta">Jakarta</option>
+    </select>
+
+    <label for="kursi">Pilih Kursi</label>
+    <input type="hidden" id="kursi" value="2">
+    <div class="seat-map">
+      <button type="button" data-seat="1" onclick="selectSeat(1)">No.1</button>
+      <button type="button" class="empty" disabled></button>
+      <button type="button" class="driver" disabled>DRIVER</button>
+      <button type="button" data-seat="2" class="selected" onclick="selectSeat(2)">No.2</button>
+      <button type="button" data-seat="3" onclick="selectSeat(3)">No.3</button>
+      <button type="button" data-seat="4" onclick="selectSeat(4)">No.4</button>
+      <button type="button" data-seat="5" onclick="selectSeat(5)">No.5</button>
+      <button type="button" class="empty" disabled></button>
+      <button type="button" data-seat="6" onclick="selectSeat(6)">No.6</button>
+    </div>
+
+    <label for="harga">Harga Tiket</label>
+    <input type="text" id="harga" readonly placeholder="Harga Tiket">
+
+    <a id="waLink" href="#" target="_blank">Pesan via WhatsApp</a>
+  </form>
+</div>
+
+<script>
+let currentLat = -2.9761;
+let currentLng = 104.7754;
+
+function selectSeat(no) {
+  document.getElementById('kursi').value = no;
+  document.querySelectorAll('.seat-map button[data-seat]').forEach(btn => btn.classList.remove('selected'));
+  const target = document.querySelector(`.seat-map button[data-seat='${no}']`);
+  if (target) target.classList.add('selected');
+  updateHarga();
+}
+
+function updateHarga() {
+  const tujuan = document.getElementById("rute").value;
+  const kursi = parseInt(document.getElementById("kursi").value);
+  let harga = 0;
+
+  const palembang = { lat: -2.9761, lng: 104.7754 };
+  const lampung = { lat: -5.3971, lng: 105.2668 };
+  const jakarta = { lat: -6.2088, lng: 106.8456 };
+
+  function isNear(a, b, range = 0.5) {
+    return Math.abs(a.lat - b.lat) < range && Math.abs(a.lng - b.lng) < range;
+  }
+
+  let asal = "";
+  if (isNear({ lat: currentLat, lng: currentLng }, palembang)) asal = "palembang";
+  else if (isNear({ lat: currentLat, lng: currentLng }, lampung)) asal = "lampung";
+  else if (isNear({ lat: currentLat, lng: currentLng }, jakarta)) asal = "jakarta";
+
+  if ((asal === "palembang" && tujuan === "lampung") || (asal === "lampung" && tujuan === "palembang")) {
+    harga = kursi === 1 ? 300000 : 250000;
+  } else if ((asal === "palembang" && tujuan === "jakarta") || (asal === "jakarta" && tujuan === "palembang")) {
+    harga = kursi === 1 ? 700000 : kursi <= 4 ? 650000 : 600000;
+  } else if ((asal === "lampung" && tujuan === "jakarta") || (asal === "jakarta" && tujuan === "lampung")) {
+    harga = kursi === 1 ? 400000 : 350000;
+  }
+
+  document.getElementById("harga").value = harga ? `Rp ${harga.toLocaleString("id-ID")}` : "";
+}
+
+document.getElementById("waLink").addEventListener("click", function() {
+  const nama = document.getElementById("nama").value;
+  const pickup = document.getElementById("pickup").value;
+  const tgl = document.getElementById("tgl").value;
+  const waktu = document.getElementById("waktu").value;
+  const rute = document.getElementById("rute").value;
+  const kursi = document.getElementById("kursi").value;
+  const harga = document.getElementById("harga").value;
+
+  const tujuanTeks = rute.charAt(0).toUpperCase() + rute.slice(1);
+  const [lat, lng] = pickup.split(",").map(str => str.trim());
+  const mapsLink = `https://www.google.com/maps?q=${lat},${lng}`;
+
+  const pesan = `Halo Admin Resta Travel.%0A%0A` +
+    `Saya ingin memesan travel:%0A` +
+    `Nama: ${nama}%0A` +
+    `Titik Jemput: ${pickup} %0A(Lihat lokasi: ${mapsLink})%0A` +
+    `Tanggal: ${tgl}%0A` +
+    `Jam: ${waktu} WIB%0A` +
+    `Kota Tujuan: ${tujuanTeks}%0A` +
+    `Kursi No: ${kursi}%0A` +
+    `Harga Tiket: ${harga}%0A%0A` +
+    `Mohon konfirmasi ketersediaan.`;
+
+  this.href = `https://wa.me/628127488437?text=${pesan}`;
+});
+</script>
+<script src="https://maps.gomaps.pro/maps/api/js?key=AlzaSypcNT1FoiGYanbtOG8QTY06XDHQq9Wcpkk&callback=initMap&libraries=places" async defer></script>
+<script>
+function initMap() {
+  const input = document.getElementById("pickup");
+  const autocomplete = new google.maps.places.Autocomplete(input);
+
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(position => {
+      currentLat = position.coords.latitude;
+      currentLng = position.coords.longitude;
+      renderMap();
+    }, () => {
+      renderMap();
+    });
+  } else {
+    renderMap();
+  }
+
+  function renderMap() {
+    const map = new google.maps.Map(document.getElementById("map"), {
+      center: { lat: currentLat, lng: currentLng },
+      zoom: 13,
+    });
+    const marker = new google.maps.Marker({
+      map,
+      draggable: true,
+      position: { lat: currentLat, lng: currentLng }
+    });
+    input.value = `${currentLat.toFixed(6)}, ${currentLng.toFixed(6)}`;
+    updateHarga();
+
+    autocomplete.addListener("place_changed", () => {
+      const place = autocomplete.getPlace();
+      if (!place.geometry) return;
+      map.setCenter(place.geometry.location);
+      marker.setPosition(place.geometry.location);
+      currentLat = place.geometry.location.lat();
+      currentLng = place.geometry.location.lng();
+      updateHarga();
+    });
+    marker.addListener("dragend", () => {
+      const pos = marker.getPosition();
+      currentLat = pos.lat();
+      currentLng = pos.lng();
+      input.value = `${currentLat.toFixed(6)}, ${currentLng.toFixed(6)}`;
+      updateHarga();
+    });
+  }
+}
+</script>
+</body>
+</html>
